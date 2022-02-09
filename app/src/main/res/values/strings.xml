@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">libopenmpt-jni-test</string>
+    <string name="textview">core_version</string>
+</resources>
