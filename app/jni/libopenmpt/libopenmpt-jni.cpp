@@ -9,7 +9,8 @@
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 
-#include <libopenmpt/libopenmpt.hpp>
+#include <libopenmpt/libopenmpt.h>
+#include <libopenmpt/libopenmpt_stream_callbacks_file.h>
 
 #include <android/log.h>
 
@@ -19,6 +20,7 @@
 #define LOG_D(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG,  __VA_ARGS__);
 
 static uint8_t *buffer[2]; // buffer for audio
+static uint8_t currentbuffer = 0;
 
 static SLObjectItf engineObject;
 static SLEngineItf engineEngine;
@@ -30,18 +32,35 @@ static SLAndroidSimpleBufferQueueItf    bqPlayerBufferQueue;
 static SLVolumeItf                      bqPlayerVolume;
 
 static bool isPaused = true;
+static bool isLoaded = false;
+
+openmpt_module *mod = NULL;
 
 extern "C" {
+    static void libopenmpt_android_logfunc(const char* message, void *userdata) {
+        if(message) LOG_D("%s",message);
+    }
+
 
     static void playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
-        // do nothing atm.
+
     }
+
+    static void togglePause() {
+        isPaused ^= 1;
+    }
+
+
 };
 
 void startOpenSLES() {
     SLresult res;
     SLDataLocator_OutputMix loc_outMix;
     SLDataSink audioSnk;
+
+    // allocate buffer
+    buffer[0] = static_cast<uint8_t *>(malloc(48000 * 2));
+    buffer[1] = static_cast<uint8_t *>(malloc(48000 * 2));
 
     res = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     assert(res == SL_RESULT_SUCCESS);
@@ -62,7 +81,8 @@ void startOpenSLES() {
             .sampleRate = SL_SAMPLINGRATE_48,
             .bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_32,
             .containerSize = SL_PCMSAMPLEFORMAT_FIXED_32,
-            .channelMask = SL_BYTEORDER_LITTLEENDIAN,
+            .channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+            .endianness = SL_BYTEORDER_LITTLEENDIAN,
             .representation = SL_ANDROID_PCM_REPRESENTATION_FLOAT
     };
     SLDataSource audioSrc = {
@@ -95,61 +115,117 @@ void startOpenSLES() {
     res = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
     assert(res == SL_RESULT_SUCCESS);
 
-    res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[0],sizeof(buffer[0]));
+    res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
 
-    if(res != SL_RESULT_SUCCESS)
+    if(res != SL_RESULT_SUCCESS) {
+        abort();
+    }
+
+    currentbuffer ^= 1;
 }
 
+void endOpenSLES() {
+    SLresult res;
+    res = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_STOPPED);
+    assert(res == SL_RESULT_SUCCESS);
+
+    if (bqPlayerObject != NULL)
+    {
+        (*bqPlayerObject)->Destroy(bqPlayerObject);
+        bqPlayerObject = NULL;
+        bqPlayerPlay = NULL;
+        bqPlayerBufferQueue = NULL;
+        bqPlayerVolume = NULL;
+    }
+
+    if (outputMixObject != NULL)
+    {
+        (*outputMixObject)->Destroy(outputMixObject);
+        outputMixObject = NULL;
+    }
+
+    if (engineObject != NULL)
+    {
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
+        engineEngine = NULL;
+    }
+    free(buffer[0]);
+    free(buffer[1]);
+}
 
 
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_HelloWorld(JNIEnv *env, jclass thiz) {
     // TODO: implement HelloWorld()
     LOG_D("aaaaaaaa it worksssss!");
-    LOG_D("%s", openmpt::string::get("library_version").c_str());
+    LOG_D("%s", openmpt_get_string("library_version"));
+    //LOG_D("%s", openmpt::string::get("library_version").c_str());
 }
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getOpenMPTString(JNIEnv *env, jclass thiz, jstring key) {
     const char *keyStr = env->GetStringUTFChars(key, nullptr);
-    return env->NewStringUTF(openmpt::string::get(keyStr).c_str());
+    const char *str = openmpt_get_string(keyStr);
+    jstring jsr = env->NewStringUTF(str);
+    openmpt_free_string(str);
+    return jsr;
 }
 
 
 extern "C" JNIEXPORT jdouble JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_OpenProbability(JNIEnv *env, jclass thiz, jstring filename, jdouble effort) {
     //FILE *fp;
     const char *filename_str = env->GetStringUTFChars(filename, nullptr);
-    std::ifstream file_stream(filename_str, std::ios::in | std::ios::binary);
-
+    //std::ifstream file_stream(filename_str, std::ios::in | std::ios::binary);
     LOG_D("Loading filename %s", filename_str);
-
-    if (!file_stream) {
+    FILE *fp = fopen(filename_str,"rb");
+    if (fp == NULL) {
         LOG_E("File Open Error %d (%s)", errno, strerror(errno))
         return 0.0;
     }
-
-    double b = openmpt::could_open_probability(file_stream, 1.0);
+    int err;
+    // TODO: Implement Error Logging Function for libopenmpt
+    double b = openmpt_could_open_probability2(openmpt_stream_get_file_callbacks(),fp,1.0,
+                                               &libopenmpt_android_logfunc,NULL,
+                                               NULL,NULL,
+                                               &err,NULL);
+    fclose(fp);
     return b;
 }
 
 
 extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_loadFile(JNIEnv *env, jclass clazz, jstring filename) {
     const char *filename_str = env->GetStringUTFChars(filename, nullptr);
-    std::ifstream file_stream(filename_str, std::ios::in | std::ios::binary);
+    FILE *fp = fopen(filename_str,"rb");
 
     LOG_D("Loading filename %s", filename_str);
-    if (!file_stream) {
+    if (fp == NULL) {
         LOG_E("File Open Error %d (%s)", errno, strerror(errno))
         return -1;
     }
+    int err;
+    mod = openmpt_module_create2(openmpt_stream_get_file_callbacks(),fp,
+                                                 &libopenmpt_android_logfunc,NULL,
+                                                 NULL,NULL,
+                                                 &err,NULL,NULL);
 
-    openmpt::module mod(file_stream);
-    LOG_D("Metadata Title %s", mod.get_metadata("message").c_str())
+    isLoaded = true;
+    //openmpt::module mod(file_stream);
+    LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
 
     return 0;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_OpenSLES_1Test(JNIEnv *env, jclass clazz) {
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_openOpenSLES(JNIEnv *env, jclass clazz) {
 
-    LOG_D("OpenSL ES Testing...");
+    LOG_D("OpenSL start");
+    startOpenSLES();
 
+}
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_togglePause(JNIEnv *env, jclass clazz) {
+    togglePause();
+}
+
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_closeOpenSLES(JNIEnv *env, jclass clazz) {
+    LOG_D("OpenSL close");
+    endOpenSLES();
 }
