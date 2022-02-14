@@ -1,13 +1,9 @@
 package team.digitalfairy.lencel.libopenmpt_jni_test;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.widget.TextView;
@@ -43,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
         //mediaSession = new MediaSessionCompat(this, MAINACTIVITY_LOGTAG);
         HelloWorld();
-        OpenSLES_Test();
+        openOpenSLES();
 
         TextView tv = findViewById(R.id.textView);
         tv.append(": "+getOpenMPTString("core_version"));
@@ -55,6 +51,14 @@ public class MainActivity extends AppCompatActivity {
         if(probability > 0.5) {
             loadFile(FILE_NAME);
         }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        Log.d(MAINACTIVITY_LOGTAG,"Onstop()");
+
 
     }
 
