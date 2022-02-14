@@ -3,18 +3,19 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    compileSdk 31
 
     defaultConfig {
         applicationId "team.digitalfairy.lencel.libopenmpt_jni_test"
-        minSdk 28
-        targetSdk 32
+        minSdk 26
+        targetSdk 31
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             ndkBuild {
+                arguments '-j8'
                 cppFlags ''
             }
         }
@@ -33,6 +34,7 @@ android {
     externalNativeBuild {
         ndkBuild {
             path file('jni/libopenmpt/Android.mk')
+
         }
     }
 }
