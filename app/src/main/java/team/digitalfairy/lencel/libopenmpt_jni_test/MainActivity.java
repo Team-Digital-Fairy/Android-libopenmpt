@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         if(probability > 0.5) {
             loadFile(FILE_NAME);
         }
+        togglePause();
     }
 
     @Override
