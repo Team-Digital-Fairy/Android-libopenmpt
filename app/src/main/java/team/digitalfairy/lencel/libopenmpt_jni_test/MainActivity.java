@@ -3,6 +3,8 @@ package team.digitalfairy.lencel.libopenmpt_jni_test;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.content.Context;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
@@ -37,9 +39,12 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("openmpt");
         Log.i(MAINACTIVITY_LOGTAG, "System Loaded Library.");
 
+        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        Log.i(MAINACTIVITY_LOGTAG,"NSR:"+am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)+" FPB:"+am.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER));
+
         //mediaSession = new MediaSessionCompat(this, MAINACTIVITY_LOGTAG);
         HelloWorld();
-        openOpenSLES();
+        openOpenSLES(Integer.parseInt(am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)), Integer.parseInt(am.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)));
 
         TextView tv = findViewById(R.id.textView);
         tv.append(": "+getOpenMPTString("core_version"));
@@ -59,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
 
         Log.d(MAINACTIVITY_LOGTAG,"Onstop()");
-
 
     }
 

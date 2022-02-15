@@ -20,7 +20,10 @@
 #define LOG_D(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG,  __VA_ARGS__);
 
 static float *buffer[2]; // buffer for audio
+static size_t buffer_size = 192; // actual buffer size 44100 counts in 16bit
 static uint8_t currentbuffer = 0;
+static size_t renderedSz[2];
+static size_t sample_rate = 48000;
 
 static SLObjectItf engineObject;
 static SLEngineItf engineEngine;
@@ -43,16 +46,20 @@ extern "C" {
 
 
     static void playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
-        LOG_D("Called! playerCallback()");
+        //LOG_D("Called! playerCallback()");
         SLresult res;
         if(isPaused) return;
         if(!isLoaded) return;
 
-        openmpt_module_read_interleaved_float_stereo(mod,48000,48000,buffer[currentbuffer]);
-        res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],48000);
+        renderedSz[currentbuffer] = openmpt_module_read_interleaved_float_stereo(mod,sample_rate,buffer_size,buffer[currentbuffer]);
+
+
+        res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],renderedSz[currentbuffer] * sizeof(float) * 2); // in byte.
         if(res != SL_RESULT_SUCCESS)
             LOG_D("%d", res);
-        currentbuffer ^= 1;
+
+        currentbuffer ^= 1; // first, render.
+        // this requires buffer count in sample. render will be *2 internally
     }
 
     static void togglePause() {
@@ -62,14 +69,16 @@ extern "C" {
 
 };
 
-void startOpenSLES() {
+void startOpenSLES(int nsr, int fpb) {
     SLresult res;
     SLDataLocator_OutputMix loc_outMix;
     SLDataSink audioSnk;
 
+    buffer_size = fpb * 2; // Stereo
+    sample_rate = nsr;
     // allocate buffer
-    buffer[0] = static_cast<float *>(malloc(48000 * 2));
-    buffer[1] = static_cast<float *>(malloc(48000 * 2));
+    buffer[0] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2)); // buffer_size is in 16bit. malloc() returns in byte. and render in stereo.
+    buffer[1] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2));
 
     res = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     assert(res == SL_RESULT_SUCCESS);
@@ -83,16 +92,20 @@ void startOpenSLES() {
     assert(res == SL_RESULT_SUCCESS);
 
     //SLDataFormat_PCM format_pcm;
-    SLDataLocator_AndroidSimpleBufferQueue locBufQ = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+    SLDataLocator_AndroidSimpleBufferQueue locBufQ = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 4};
     SLAndroidDataFormat_PCM_EX format_pcm_ex = {
             .formatType = SL_ANDROID_DATAFORMAT_PCM_EX,
             .numChannels = 2,
-            .sampleRate = SL_SAMPLINGRATE_48,
+            //.sampleRate = SL_SAMPLINGRATE_44_1,
+            .sampleRate = nsr==48000?SL_SAMPLINGRATE_48:SL_SAMPLINGRATE_44_1,
+            //.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16,
+            //.containerSize = SL_PCMSAMPLEFORMAT_FIXED_16,
             .bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_32,
             .containerSize = SL_PCMSAMPLEFORMAT_FIXED_32,
             .channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
             .endianness = SL_BYTEORDER_LITTLEENDIAN,
             .representation = SL_ANDROID_PCM_REPRESENTATION_FLOAT
+            //.representation = SL_ANDROID_PCM_REPRESENTATION_SIGNED_INT
     };
     SLDataSource audioSrc = {
             .pLocator = &locBufQ,
@@ -233,10 +246,11 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
     return 0;
 }
 
-extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_openOpenSLES(JNIEnv *env, jclass clazz) {
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_openOpenSLES(JNIEnv *env, jclass clazz, jint nsr, jint fpb) {
 
-    LOG_D("OpenSL start");
-    startOpenSLES();
+    LOG_D("OpenSL start with sample rate %d, buffersz %d",nsr,fpb);
+
+    startOpenSLES(nsr,fpb);
 
 }
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_togglePause(JNIEnv *env, jclass clazz) {
