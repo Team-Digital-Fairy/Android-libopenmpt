@@ -19,7 +19,7 @@
 #define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG,  __VA_ARGS__);
 #define LOG_D(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG,  __VA_ARGS__);
 
-static uint8_t *buffer[2]; // buffer for audio
+static float *buffer[2]; // buffer for audio
 static uint8_t currentbuffer = 0;
 
 static SLObjectItf engineObject;
@@ -43,11 +43,20 @@ extern "C" {
 
 
     static void playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
+        LOG_D("Called! playerCallback()");
+        SLresult res;
+        if(isPaused) return;
+        if(!isLoaded) return;
 
+        openmpt_module_read_interleaved_float_stereo(mod,48000,48000,buffer[currentbuffer]);
+        res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],48000);
+        if(res != SL_RESULT_SUCCESS)
+            LOG_D("%d", res);
+        currentbuffer ^= 1;
     }
 
     static void togglePause() {
-        isPaused ^= 1;
+        isPaused = false;
     }
 
 
@@ -59,8 +68,8 @@ void startOpenSLES() {
     SLDataSink audioSnk;
 
     // allocate buffer
-    buffer[0] = static_cast<uint8_t *>(malloc(48000 * 2));
-    buffer[1] = static_cast<uint8_t *>(malloc(48000 * 2));
+    buffer[0] = static_cast<float *>(malloc(48000 * 2));
+    buffer[1] = static_cast<float *>(malloc(48000 * 2));
 
     res = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     assert(res == SL_RESULT_SUCCESS);
@@ -112,7 +121,7 @@ void startOpenSLES() {
     assert(res == SL_RESULT_SUCCESS);
     res = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_VOLUME, &bqPlayerVolume);
     assert(res == SL_RESULT_SUCCESS);
-    res = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+    res = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PAUSED);
     assert(res == SL_RESULT_SUCCESS);
 
     res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
@@ -195,6 +204,12 @@ extern "C" JNIEXPORT jdouble JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
 
 extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_loadFile(JNIEnv *env, jclass clazz, jstring filename) {
     const char *filename_str = env->GetStringUTFChars(filename, nullptr);
+    if(isLoaded) {
+        isPaused = true;
+        openmpt_module_destroy(mod);
+    }
+    isLoaded = false;
+
     FILE *fp = fopen(filename_str,"rb");
 
     LOG_D("Loading filename %s", filename_str);
@@ -208,10 +223,13 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
                                                  NULL,NULL,
                                                  &err,NULL,NULL);
 
-    isLoaded = true;
-    //openmpt::module mod(file_stream);
-    LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
 
+    isLoaded = true;
+    isPaused = true;
+
+    //openmpt::modulemod(file_stream);
+    LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
+    //fclose(fp);
     return 0;
 }
 
@@ -222,7 +240,9 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
 
 }
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_togglePause(JNIEnv *env, jclass clazz) {
+    LOG_D("togglePause()");
     togglePause();
+    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_closeOpenSLES(JNIEnv *env, jclass clazz) {
