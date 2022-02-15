@@ -66,6 +66,10 @@ extern "C" {
         isPaused = false;
     }
 
+    static void stopPlaying() {
+        isPaused = true;
+    }
+
 
 };
 
@@ -257,6 +261,13 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
     LOG_D("togglePause()");
     togglePause();
     (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_stopPlaying(JNIEnv *env, jclass clazz)
+{
+    LOG_D("stopPlaying()");
+    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_STOPPED);
+    stopPlaying();
 }
 
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_closeOpenSLES(JNIEnv *env, jclass clazz) {
