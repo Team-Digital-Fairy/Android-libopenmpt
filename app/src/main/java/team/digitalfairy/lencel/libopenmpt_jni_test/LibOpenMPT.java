@@ -12,7 +12,7 @@ public class LibOpenMPT {
 
     public static native int loadFile(String filename);
 
-    public static native void openOpenSLES();
+    public static native void openOpenSLES(int nsr, int fpb);
 
     public static native void togglePause();
 
