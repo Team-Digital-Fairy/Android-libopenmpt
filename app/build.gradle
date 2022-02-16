@@ -26,6 +26,14 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            debuggable true
+            jniDebuggable true
+            renderscriptDebuggable false
+            minifyEnabled false
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-DEVDEBUG'
+        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -41,14 +49,13 @@ android {
 
 dependencies {
 
-    implementation 'androidx.appcompat:appcompat:1.4.0'
-    implementation 'com.google.android.material:material:1.4.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.2'
-    testImplementation 'junit:junit:4.+'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
+    testImplementation 'junit:junit:'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
-    implementation "androidx.media:media:1.4.3"
-
+    implementation "androidx.media:media:1.5.0"
 
     implementation "com.github.permissions-dispatcher:permissionsdispatcher:4.9.1"
     annotationProcessor "com.github.permissions-dispatcher:permissionsdispatcher-processor:4.9.1"
