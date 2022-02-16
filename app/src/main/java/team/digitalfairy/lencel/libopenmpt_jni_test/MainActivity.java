@@ -221,22 +221,26 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // TODO: This seems to cause crash over time. at random. Figure out why?
+                    // TODO: String.format is slow. It may crash, again.
+
                     sf = ex.scheduleAtFixedRate(() -> {
-                        status_d.setText(
-                                String.format(
-                                        "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
-                                        getSpeed(),getTempo(),getRow(),getPattern(),getOrder()
-                                )
+                        String a = String.format(
+                                "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
+                                getSpeed(),getTempo(),getRow(),getPattern(),getOrder()
                         );
+
+                        // prepare before update.
+                        String sv[] = new String[channels];
                         for(int i=0; i<channels; i++) {
-                            //String.format()
-                            tvs[i].setText(
-                                    String.format(
-                                            "%02d: L:%f R:%f"
-                                            ,i,getVULeft(i),getVURight(i))
-                            );
+                            sv[i] = String.format("%02d: L:%f R:%f", i, getVULeft(i), getVURight(i));
                         }
-                    },0,35, TimeUnit.MILLISECONDS);
+                        runOnUiThread(() -> {
+                            status_d.setText(a);
+                            for (int i = 0; i < channels; i++) {
+                                tvs[i].setText(sv[i]);
+                            }
+                        });
+                    },0,50, TimeUnit.MILLISECONDS);
 
 
                     togglePause();
