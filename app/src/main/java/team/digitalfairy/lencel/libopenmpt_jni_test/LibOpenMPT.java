@@ -24,7 +24,14 @@ public class LibOpenMPT {
 
     // Controls
     public static native int getNumChannel();
-    public static native float getVULeft();
+    public static native float getVULeft(int nums);
+    public static native float getVURight(int nums);
+
+    public static native int getOrder();
+    public static native int getPattern();
+    public static native int getRow();
+    public static native int getSpeed();
+    public static native int getTempo();
 
 
 }

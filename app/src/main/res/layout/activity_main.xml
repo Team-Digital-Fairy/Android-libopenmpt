@@ -32,34 +32,34 @@
         android:layout_height="wrap_content"
         android:text="Hello World!"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHorizontal_bias="0.011"
+        app:layout_constraintHorizontal_bias="0.023"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.549" />
+        app:layout_constraintVertical_bias="0.731" />
 
     <LinearLayout
-        android:layout_width="402dp"
-        android:layout_height="283dp"
+        android:id="@+id/layoutLinear"
+        android:layout_width="396dp"
+        android:layout_height="417dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toTopOf="@+id/textView3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.444"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0">
+        app:layout_constraintTop_toBottomOf="@+id/textView"
+        app:layout_constraintVertical_bias="1.0" />
 
-        <TextView
-            android:id="@+id/log_vu_left"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="VU_LEFT:" />
-
-        <TextView
-            android:id="@+id/log_vu_right"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="VU_RIGHT:" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/status_mod"
+        android:layout_width="395dp"
+        android:layout_height="22dp"
+        android:layout_marginBottom="8dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/layoutLinear"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

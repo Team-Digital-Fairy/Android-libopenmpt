@@ -235,6 +235,7 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
     if(isLoaded) {
         isPaused = true;
         openmpt_module_destroy(mod);
+        mod = NULL;
     }
     isLoaded = false;
 
@@ -291,13 +292,46 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
     endOpenSLES();
 }
 
-extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz) {
-    if(!isLoaded) return 0.0f;
-    return openmpt_module_get_current_channel_vu_left(mod,0);
+extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz, jint nums) {
+    if(mod == NULL) return 0.0f;
+    return openmpt_module_get_current_channel_vu_left(mod,nums);
 
 }
 extern "C" JNIEXPORT jint JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getNumChannel(JNIEnv *env, jclass clazz) {
-    if(!isLoaded) return 0;
+    if(mod == NULL) return 0;
+    return openmpt_module_get_num_channels(mod);
+}
+extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVURight(JNIEnv *env, jclass clazz, jint nums) {
+    if(mod == NULL) return 0.0f;
+    return openmpt_module_get_current_channel_vu_right(mod,nums);
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getOrder(JNIEnv *env, jclass clazz) {
+    if(mod == NULL) return 0;
+    return openmpt_module_get_current_order(mod);
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getPattern(JNIEnv *env, jclass clazz) {
+    if(mod == NULL) return 0;
+    return openmpt_module_get_current_pattern(mod);
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getRow(JNIEnv *env, jclass clazz) {
+    if(mod == NULL) return 0;
     return openmpt_module_get_current_row(mod);
-
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getSpeed(JNIEnv *env, jclass clazz) {
+    if(mod == NULL) return 0;
+    return openmpt_module_get_current_speed(mod);
+}
+extern "C"
+JNIEXPORT jint JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getTempo(JNIEnv *env, jclass clazz) {
+    if(mod == NULL) return 0;
+    return openmpt_module_get_current_tempo(mod);
 }

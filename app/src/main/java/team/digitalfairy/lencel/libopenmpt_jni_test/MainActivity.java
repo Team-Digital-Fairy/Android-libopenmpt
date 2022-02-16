@@ -15,6 +15,7 @@ import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.core.app.ActivityCompat;
@@ -48,7 +49,8 @@ public class MainActivity extends AppCompatActivity {
 
     private MediaSessionCompat mediaSession;
 
-    TextView vuleft;
+    TextView status_d;
+    LinearLayout ll;
 
 
     @Override
@@ -56,7 +58,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        vuleft = findViewById(R.id.log_vu_left);
+        status_d = findViewById(R.id.status_mod);
+        ll = findViewById(R.id.layoutLinear);
+
 
         if(android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.P)
             m_lastPath = Environment.getExternalStorageDirectory().getPath();
@@ -155,30 +159,49 @@ public class MainActivity extends AppCompatActivity {
         OpenFileDialog fileDialog = new OpenFileDialog(this)
                 .setFilter(".*")
                 .setCurrentDirectory(m_lastPath)
-                .setOpenDialogListener(new OpenFileDialog.OpenDialogListener()
-                {
-                    @Override
-                    public void OnSelectedFile(String fileName, String lastPath) {
-                        // processMusicFile(fileName, lastPath);
+                .setOpenDialogListener((fileName, lastPath) -> {
+                    // processMusicFile(fileName, lastPath);
 
-                        m_lastPath = lastPath;
-                        stopPlaying();
+                    m_lastPath = lastPath;
+                    stopPlaying();
 
-                        getHowMuchProbability(fileName,1.0);
+                    getHowMuchProbability(fileName,1.0);
 
-                        Log.d(MAINACTIVITY_LOGTAG, String.valueOf(probability));
+                    Log.d(MAINACTIVITY_LOGTAG, String.valueOf(probability));
 
-                        if(probability > 0.5) {
-                            loadFile(fileName);
-                        }
-
-                        ex.scheduleAtFixedRate(() -> {
-                            vuleft.setText(""+getNumChannel());
-                        },0,16, TimeUnit.MILLISECONDS);
-
-
-                        togglePause();
+                    if(probability > 0.5) {
+                        loadFile(fileName);
                     }
+
+                    ll.removeAllViews();
+                    int channels = getNumChannel();
+                    TextView[] tvs = new TextView[channels];
+                    for(int i=0; i<channels; i++) {
+                        tvs[i] = new TextView(this);
+                        tvs[i].setId(i);
+                        //tvs[i].setText("");
+                        ll.addView(tvs[i]);
+                    }
+
+                    ex.scheduleAtFixedRate(() -> {
+                        status_d.setText(
+                                String.format(
+                                        "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
+                                        getSpeed(),getTempo(),getRow(),getPattern(),getOrder()
+                                )
+                        );
+                        for(int i=0; i<channels; i++) {
+                            //String.format()
+                            tvs[i].setText(
+                                    String.format(
+                                            "%02d: L:%f R:%f"
+                                            ,i,getVULeft(i),getVURight(i))
+                            );
+                        }
+                    },0,35, TimeUnit.MILLISECONDS);
+
+
+                    togglePause();
                 });
         fileDialog.show();
     }
