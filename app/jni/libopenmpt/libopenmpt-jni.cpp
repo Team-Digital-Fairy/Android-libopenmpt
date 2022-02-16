@@ -44,6 +44,9 @@ extern "C" {
         if(message) LOG_D("%s",message);
     }
 
+    static void libopenmpt_android_errorfunc(int error, void *userdata) {
+
+    }
 
     static void playerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
         //LOG_D("Called! playerCallback()");
@@ -52,12 +55,18 @@ extern "C" {
         if(!isLoaded) return;
 
         renderedSz[currentbuffer] = openmpt_module_read_interleaved_float_stereo(mod,sample_rate,buffer_size,buffer[currentbuffer]);
-
+        if(renderedSz[currentbuffer] == 0) {
+            LOG_D("Hmm. Is it end of file?");
+            renderedSz[currentbuffer] = openmpt_module_read_interleaved_float_stereo(mod,sample_rate,buffer_size,buffer[currentbuffer]);
+            if(renderedSz[currentbuffer] == 0) {
+                isPaused = true;
+                renderedSz[currentbuffer] = 1;
+            }
+        }
 
         res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],renderedSz[currentbuffer] * sizeof(float) * 2); // in byte.
         if(res != SL_RESULT_SUCCESS)
-            LOG_D("%d", res);
-
+            LOG_D("Error on Enqueue? %d", res);
         currentbuffer ^= 1; // first, render.
         // this requires buffer count in sample. render will be *2 internally
     }
@@ -209,11 +218,12 @@ extern "C" JNIEXPORT jdouble JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
         return 0.0;
     }
     int err;
+    const char* errormsg;
     // TODO: Implement Error Logging Function for libopenmpt
     double b = openmpt_could_open_probability2(openmpt_stream_get_file_callbacks(),fp,1.0,
                                                &libopenmpt_android_logfunc,NULL,
                                                NULL,NULL,
-                                               &err,NULL);
+                                               &err,&errormsg);
     fclose(fp);
     return b;
 }
@@ -221,6 +231,7 @@ extern "C" JNIEXPORT jdouble JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
 
 extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_loadFile(JNIEnv *env, jclass clazz, jstring filename) {
     const char *filename_str = env->GetStringUTFChars(filename, nullptr);
+    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PAUSED);
     if(isLoaded) {
         isPaused = true;
         openmpt_module_destroy(mod);
@@ -235,18 +246,23 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
         return -1;
     }
     int err;
+    const char* errstr;
     mod = openmpt_module_create2(openmpt_stream_get_file_callbacks(),fp,
                                                  &libopenmpt_android_logfunc,NULL,
                                                  NULL,NULL,
-                                                 &err,NULL,NULL);
+                                                 &err,&errstr,NULL);
 
-
+    if(mod == NULL) {
+        LOG_E("Error %d %s",err,errstr);
+        return -1;
+    }
     isLoaded = true;
     isPaused = true;
 
     //openmpt::modulemod(file_stream);
     LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
-    //fclose(fp);
+    (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
+
     return 0;
 }
 
@@ -273,4 +289,15 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_closeOpenSLES(JNIEnv *env, jclass clazz) {
     LOG_D("OpenSL close");
     endOpenSLES();
+}
+
+extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz) {
+    if(!isLoaded) return 0.0f;
+    return openmpt_module_get_current_channel_vu_left(mod,0);
+
+}
+extern "C" JNIEXPORT jint JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getNumChannel(JNIEnv *env, jclass clazz) {
+    if(!isLoaded) return 0;
+    return openmpt_module_get_current_row(mod);
+
 }

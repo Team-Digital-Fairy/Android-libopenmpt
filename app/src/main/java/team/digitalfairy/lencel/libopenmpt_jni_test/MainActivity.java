@@ -22,6 +22,12 @@ import androidx.core.content.ContextCompat;
 
 import static team.digitalfairy.lencel.libopenmpt_jni_test.LibOpenMPT.*;
 
+import org.w3c.dom.Text;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /*
     MANAGE_STORAGEはユーザーが明示的に設定する必要あり。
     Intentを呼べばいいはず？
@@ -29,6 +35,8 @@ import static team.digitalfairy.lencel.libopenmpt_jni_test.LibOpenMPT.*;
  */
 
 public class MainActivity extends AppCompatActivity {
+    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
+
     private static final String MAINACTIVITY_LOGTAG = "MainAct_Log";
     private static double probability = 0.0;
 
@@ -40,11 +48,15 @@ public class MainActivity extends AppCompatActivity {
 
     private MediaSessionCompat mediaSession;
 
+    TextView vuleft;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        vuleft = findViewById(R.id.log_vu_left);
 
         if(android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.P)
             m_lastPath = Environment.getExternalStorageDirectory().getPath();
@@ -85,49 +97,42 @@ public class MainActivity extends AppCompatActivity {
     {
         final int grant = PackageManager.PERMISSION_GRANTED;
 
-        if (Build.VERSION.SDK_INT >= 23)
-        {
-            final String exStorage = Manifest.permission.READ_EXTERNAL_STORAGE;
-            if (ContextCompat.checkSelfPermission(this, exStorage) == grant) {
-                Log.d(MAINACTIVITY_LOGTAG, "File permission is granted");
-            } else {
-                Log.d(MAINACTIVITY_LOGTAG, "File permission is revoked");
-            }
+
+        final String exStorage = Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, exStorage) == grant) {
+            Log.d(MAINACTIVITY_LOGTAG, "File permission is granted");
+        } else {
+            Log.d(MAINACTIVITY_LOGTAG, "File permission is revoked");
         }
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-        {
-            final String exStorage = Manifest.permission.READ_EXTERNAL_STORAGE;
-            if((ContextCompat.checkSelfPermission(this, exStorage) == grant))
-                return false;
 
-            // Should we show an explanation?
-            if(ActivityCompat.shouldShowRequestPermissionRationale(this, exStorage))
-            {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-                AlertDialog.Builder b = new AlertDialog.Builder(this);
-                b.setTitle("Permission denied");
-                b.setMessage("Sorry, but permission is denied!\n"+
-                        "Please, check the Read Extrnal Storage permission to application!");
-                b.setNegativeButton(android.R.string.ok, null);
-                b.show();
-                return true;
-            }
-            else
-            {
-                // No explanation needed, we can request the permission.
-                ActivityCompat.requestPermissions(this, new String[] { exStorage }, requestCode);
-                // MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE
-                // MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
+        if((ContextCompat.checkSelfPermission(this, exStorage) == grant))
+            return false;
+
+        // Should we show an explanation?
+        if(ActivityCompat.shouldShowRequestPermissionRationale(this, exStorage))
+        {
+            // Show an explanation to the user *asynchronously* -- don't block
+            // this thread waiting for the user's response! After the user
+            // sees the explanation, try again to request the permission.
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle("Permission denied");
+            b.setMessage("Sorry, but permission is denied!\n"+
+                    "Please, check the Read Extrnal Storage permission to application!");
+            b.setNegativeButton(android.R.string.ok, null);
+            b.show();
             return true;
         }
-
-        return false;
+        else
+        {
+            // No explanation needed, we can request the permission.
+            ActivityCompat.requestPermissions(this, new String[] { exStorage }, requestCode);
+            // MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE
+            // MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE is an
+            // app-defined int constant. The callback method gets the
+            // result of the request.
+        }
+        return true;
     }
 
     @Override
@@ -155,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void OnSelectedFile(String fileName, String lastPath) {
                         // processMusicFile(fileName, lastPath);
+
                         m_lastPath = lastPath;
                         stopPlaying();
 
@@ -165,6 +171,12 @@ public class MainActivity extends AppCompatActivity {
                         if(probability > 0.5) {
                             loadFile(fileName);
                         }
+
+                        ex.scheduleAtFixedRate(() -> {
+                            vuleft.setText(""+getNumChannel());
+                        },0,16, TimeUnit.MILLISECONDS);
+
+
                         togglePause();
                     }
                 });

@@ -18,5 +18,13 @@ public class LibOpenMPT {
 
     public static native void stopPlaying();
 
+
     public static native void closeOpenSLES();
+
+
+    // Controls
+    public static native int getNumChannel();
+    public static native float getVULeft();
+
+
 }
