@@ -26,8 +26,28 @@ import static team.digitalfairy.lencel.libopenmpt_jni_test.LibOpenMPT.*;
 import org.w3c.dom.Text;
 
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+/*
+   Copyright 2022 Chromaryu <knight.ryu12@gmail.com>
+   Copyright 2022 Vitaly Novichkov <admin@wohlnet.ru>
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ */
+
 
 /*
     MANAGE_STORAGEはユーザーが明示的に設定する必要あり。
@@ -36,8 +56,8 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class MainActivity extends AppCompatActivity {
-    private final ScheduledExecutorService ex = Executors.newSingleThreadScheduledExecutor();
-
+    private final ScheduledExecutorService ex = Executors.newScheduledThreadPool(1);
+    private ScheduledFuture<?> sf = null;
     private static final String MAINACTIVITY_LOGTAG = "MainAct_Log";
     private static double probability = 0.0;
 
@@ -161,8 +181,8 @@ public class MainActivity extends AppCompatActivity {
                 .setCurrentDirectory(m_lastPath)
                 .setOpenDialogListener((fileName, lastPath) -> {
                     // processMusicFile(fileName, lastPath);
-
                     m_lastPath = lastPath;
+                    if(sf != null) sf.cancel(false);
                     stopPlaying();
 
                     getHowMuchProbability(fileName,1.0);
@@ -183,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                         ll.addView(tvs[i]);
                     }
 
-                    ex.scheduleAtFixedRate(() -> {
+                    sf = ex.scheduleAtFixedRate(() -> {
                         status_d.setText(
                                 String.format(
                                         "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
@@ -205,6 +225,9 @@ public class MainActivity extends AppCompatActivity {
                 });
         fileDialog.show();
     }
+
+
+
 
     @Override
     protected void onStop() {

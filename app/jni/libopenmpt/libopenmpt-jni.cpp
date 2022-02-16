@@ -19,6 +19,8 @@
 #define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG,  __VA_ARGS__);
 #define LOG_D(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG,  __VA_ARGS__);
 
+static pthread_mutex_t g_lock;
+
 static float *buffer[2]; // buffer for audio
 static size_t buffer_size = 192; // actual buffer size 44100 counts in 16bit
 static uint8_t currentbuffer = 0;
@@ -54,6 +56,7 @@ extern "C" {
         if(isPaused) return;
         if(!isLoaded) return;
 
+        pthread_mutex_lock(&g_lock);
         renderedSz[currentbuffer] = openmpt_module_read_interleaved_float_stereo(mod,sample_rate,buffer_size,buffer[currentbuffer]);
         if(renderedSz[currentbuffer] == 0) {
             LOG_D("Hmm. Is it end of file?");
@@ -63,6 +66,7 @@ extern "C" {
                 renderedSz[currentbuffer] = 1;
             }
         }
+        pthread_mutex_unlock(&g_lock);
 
         res = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],renderedSz[currentbuffer] * sizeof(float) * 2); // in byte.
         if(res != SL_RESULT_SUCCESS)
@@ -86,6 +90,9 @@ void startOpenSLES(int nsr, int fpb) {
     SLresult res;
     SLDataLocator_OutputMix loc_outMix;
     SLDataSink audioSnk;
+
+    assert(pthread_mutex_init(&g_lock, NULL) == 0);
+
 
     buffer_size = fpb * 2; // Stereo
     sample_rate = nsr;
@@ -232,6 +239,7 @@ extern "C" JNIEXPORT jdouble JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
 extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_loadFile(JNIEnv *env, jclass clazz, jstring filename) {
     const char *filename_str = env->GetStringUTFChars(filename, nullptr);
     (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PAUSED);
+
     if(isLoaded) {
         isPaused = true;
         openmpt_module_destroy(mod);
@@ -292,46 +300,73 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
     endOpenSLES();
 }
 
-extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz, jint nums) {
-    if(mod == NULL) return 0.0f;
-    return openmpt_module_get_current_channel_vu_left(mod,nums);
-
-}
 extern "C" JNIEXPORT jint JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getNumChannel(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_num_channels(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_num_channels(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
+
+extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz, jint nums) {
+    if(mod == NULL) return 0.0f;
+    pthread_mutex_lock(&g_lock);
+    float r = openmpt_module_get_current_channel_vu_left(mod,nums);
+    pthread_mutex_unlock(&g_lock);
+    return r;
+
+}
+
 extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVURight(JNIEnv *env, jclass clazz, jint nums) {
     if(mod == NULL) return 0.0f;
-    return openmpt_module_get_current_channel_vu_right(mod,nums);
+    pthread_mutex_lock(&g_lock);
+    float r = openmpt_module_get_current_channel_vu_right(mod,nums);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
 extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getOrder(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_current_order(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_current_order(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
+
 }
 extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getPattern(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_current_pattern(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_current_pattern(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
 extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getRow(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_current_row(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_current_row(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
 extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getSpeed(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_current_speed(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_current_speed(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
 extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getTempo(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
-    return openmpt_module_get_current_tempo(mod);
+    pthread_mutex_lock(&g_lock);
+    int r = openmpt_module_get_current_tempo(mod);
+    pthread_mutex_unlock(&g_lock);
+    return r;
 }
