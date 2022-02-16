@@ -370,3 +370,28 @@ Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getTempo(JNIEnv *
     pthread_mutex_unlock(&g_lock);
     return r;
 }
+
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_setRenderParam(JNIEnv *env, jclass clazz, jint param, jint value) {
+    if(mod == NULL) return;
+    pthread_mutex_lock(&g_lock);
+    openmpt_module_set_render_param(mod,param,value);
+    pthread_mutex_unlock(&g_lock);
+}
+extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_ctlSetRepeat(JNIEnv *env, jclass clazz, jint repeat_count) {
+    if(mod == NULL) return;
+    pthread_mutex_lock(&g_lock);
+    openmpt_module_set_repeat_count(mod,repeat_count);
+    pthread_mutex_unlock(&g_lock);
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getMetadata(JNIEnv *env, jclass clazz, jstring key) {
+    const char *key_str = env->GetStringUTFChars(key, nullptr);
+    jstring ret = env->NewStringUTF("");
+    if(mod == NULL) return ret;
+
+    pthread_mutex_lock(&g_lock);
+    const char* meta = openmpt_module_get_metadata(mod,key_str);
+    pthread_mutex_unlock(&g_lock);
+    ret = env->NewStringUTF(meta);
+    return ret;
+}

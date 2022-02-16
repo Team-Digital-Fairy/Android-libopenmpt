@@ -16,6 +16,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import androidx.core.app.ActivityCompat;
@@ -70,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaSessionCompat mediaSession;
 
     TextView status_d;
+    TextView mod_title;
     LinearLayout ll;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +101,17 @@ public class MainActivity extends AppCompatActivity {
 
         TextView tv = findViewById(R.id.textView);
         tv.append(": " + getOpenMPTString("core_version"));
+        mod_title = findViewById(R.id.modtitle);
+        RadioGroup rg = findViewById(R.id.interp_group);
+        rg.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                RadioButton rb = findViewById(checkedId);
+                int r = Integer.parseInt((String) rb.getTag());
+                Log.d(MAINACTIVITY_LOGTAG,"change interp to "+r);
+                setRenderParam(3,r);
+            }
+        });
 
         Button openfb = (Button) findViewById(R.id.button);
         openfb.setOnClickListener(new View.OnClickListener()
@@ -109,6 +122,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     public void OnOpenFileClick(View view) {
         // Here, thisActivity is the current activity
@@ -182,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                 .setOpenDialogListener((fileName, lastPath) -> {
                     // processMusicFile(fileName, lastPath);
                     m_lastPath = lastPath;
-                    if(sf != null) sf.cancel(false);
+                    if(sf != null) sf.cancel(true);
                     stopPlaying();
 
                     getHowMuchProbability(fileName,1.0);
@@ -193,16 +208,19 @@ public class MainActivity extends AppCompatActivity {
                         loadFile(fileName);
                     }
 
+                    ctlSetRepeat(-1);
+                    mod_title.setText(getMetadata("title"));
                     ll.removeAllViews();
                     int channels = getNumChannel();
                     TextView[] tvs = new TextView[channels];
                     for(int i=0; i<channels; i++) {
                         tvs[i] = new TextView(this);
-                        tvs[i].setId(i);
+                        //tvs[i].setId(1000+i);
                         //tvs[i].setText("");
                         ll.addView(tvs[i]);
                     }
 
+                    // TODO: This seems to cause crash over time. at random. Figure out why?
                     sf = ex.scheduleAtFixedRate(() -> {
                         status_d.setText(
                                 String.format(
@@ -225,7 +243,6 @@ public class MainActivity extends AppCompatActivity {
                 });
         fileDialog.show();
     }
-
 
 
 

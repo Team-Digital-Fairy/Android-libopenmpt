@@ -23,6 +23,8 @@ public class LibOpenMPT {
 
 
     // Controls
+    public static native String getMetadata(String key);
+
     public static native int getNumChannel();
     public static native float getVULeft(int nums);
     public static native float getVURight(int nums);
@@ -33,5 +35,6 @@ public class LibOpenMPT {
     public static native int getSpeed();
     public static native int getTempo();
 
-
+    public static native void setRenderParam(int param, int value);
+    public static native void ctlSetRepeat(int repeat_count);
 }

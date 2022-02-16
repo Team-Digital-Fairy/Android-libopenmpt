@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">libopenmpt-jni-test</string>
     <string name="textview">core_version</string>
+    <string name="interp_0">Default</string>
+    <string name="interp_1">None</string>
+    <string name="interp_2">Linear</string>
+    <string name="interp_4">Cubic</string>
+    <string name="interp_8">Windowed Sinc</string>
+    <string name="open_file">Open file...</string>
 </resources>
