@@ -240,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
                                 tvs[i].setText(sv[i]);
                             }
                         });
-                    },0,50, TimeUnit.MILLISECONDS);
+                    },0,38, TimeUnit.MILLISECONDS);
 
 
                     togglePause();
