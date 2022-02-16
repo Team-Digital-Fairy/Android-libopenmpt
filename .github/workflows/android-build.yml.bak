@@ -3,7 +3,7 @@ name: Android CI
 on:
   push:
     branches:
-      - master # masterブランチへのマージを契機にビルドする
+      - main # masterブランチへのマージを契機にビルドする
 
 jobs:
   build:
