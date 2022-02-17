@@ -7,4 +7,5 @@
     <string name="interp_4">Cubic</string>
     <string name="interp_8">Windowed Sinc</string>
     <string name="open_file">Open file...</string>
+    <string name="stop">Stop</string>
 </resources>

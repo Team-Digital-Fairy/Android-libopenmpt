@@ -26,8 +26,11 @@ jobs:
         run: ./gradlew testDebug
       - name: Build with Gradle
         run: ./gradlew assembleDebug
+      - name: Build Release 
+        run: ./gradlew assembleRelease
       - name: Upload apk file
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
-          name: apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: app
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk

@@ -81,6 +81,14 @@ extern "C" {
 
     static void stopPlaying() {
         isPaused = true;
+        memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
+        memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
+        isLoaded = false;
+        if(mod != NULL) {
+            openmpt_module_destroy(mod);
+            mod = NULL;
+        }
+        isPaused = false;
     }
 
 
@@ -99,6 +107,9 @@ void startOpenSLES(int nsr, int fpb) {
     // allocate buffer
     buffer[0] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2)); // buffer_size is in 16bit. malloc() returns in byte. and render in stereo.
     buffer[1] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2));
+
+    memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
+    memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
 
     res = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     assert(res == SL_RESULT_SUCCESS);
@@ -245,6 +256,11 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
         openmpt_module_destroy(mod);
         mod = NULL;
     }
+
+    // wipe the buffer just in case
+    memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
+    memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
+
     isLoaded = false;
 
     FILE *fp = fopen(filename_str,"rb");
@@ -268,10 +284,11 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
     isLoaded = true;
     isPaused = true;
 
-    //openmpt::modulemod(file_stream);
+
     LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
     (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
-
+    currentbuffer ^= 1;
+    fclose(fp);
     return 0;
 }
 

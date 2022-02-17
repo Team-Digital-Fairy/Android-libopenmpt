@@ -113,14 +113,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button openfb = (Button) findViewById(R.id.button);
-        openfb.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View view) {
-                OnOpenFileClick(view);
-            }
+        Button stopBtn = findViewById(R.id.stopButton);
+        stopBtn.setOnClickListener(v -> {
+            if(sf != null) sf.cancel(true);
+            ll.removeAllViews();
+            stopPlaying();
         });
+
+        Button openfb = (Button) findViewById(R.id.button);
+        openfb.setOnClickListener(this::OnOpenFileClick);
     }
 
 
