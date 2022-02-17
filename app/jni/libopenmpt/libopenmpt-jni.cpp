@@ -81,8 +81,8 @@ extern "C" {
 
     static void stopPlaying() {
         isPaused = true;
-        memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
-        memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
+        memset(buffer[0],0,buffer_size * sizeof(float) * 2);
+        memset(buffer[1],0,buffer_size * sizeof(float) * 2);
         isLoaded = false;
         if(mod != NULL) {
             openmpt_module_destroy(mod);
@@ -102,14 +102,17 @@ void startOpenSLES(int nsr, int fpb) {
     assert(pthread_mutex_init(&g_lock, NULL) == 0);
 
 
-    buffer_size = fpb * 2; // Stereo
+    buffer_size = fpb * 4; // Stereo
     sample_rate = nsr;
+
+    LOG_D("OpenSL start with sample rate %d, buffersz %d",sample_rate,buffer_size);
+
     // allocate buffer
     buffer[0] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2)); // buffer_size is in 16bit. malloc() returns in byte. and render in stereo.
     buffer[1] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2));
 
-    memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
-    memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
+    memset(buffer[0],0,buffer_size * sizeof(float) * 2);
+    memset(buffer[1],0,buffer_size * sizeof(float) * 2);
 
     res = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     assert(res == SL_RESULT_SUCCESS);
@@ -258,8 +261,8 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
     }
 
     // wipe the buffer just in case
-    memset(buffer[0],sizeof(float),buffer_size * sizeof(float) * 2);
-    memset(buffer[1],sizeof(float),buffer_size * sizeof(float) * 2);
+    memset(buffer[0],0,buffer_size * sizeof(float) * 2);
+    memset(buffer[1],0,buffer_size * sizeof(float) * 2);
 
     isLoaded = false;
 
@@ -286,6 +289,7 @@ extern "C" JNIEXPORT int JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1
 
 
     LOG_D("Metadata Title %s", openmpt_module_get_metadata(mod,"title"));
+    // TODO: Figure out why Enqueue generates INSUFFICIENT buffer error.
     (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
     currentbuffer ^= 1;
     fclose(fp);
@@ -319,6 +323,7 @@ extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
 
 extern "C" JNIEXPORT jint JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getNumChannel(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_num_channels(mod);
     pthread_mutex_unlock(&g_lock);
@@ -327,6 +332,7 @@ extern "C" JNIEXPORT jint JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_
 
 extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVULeft(JNIEnv *env, jclass clazz, jint nums) {
     if(mod == NULL) return 0.0f;
+    if(!isLoaded) return 0.0f;
     pthread_mutex_lock(&g_lock);
     float r = openmpt_module_get_current_channel_vu_left(mod,nums);
     pthread_mutex_unlock(&g_lock);
@@ -336,6 +342,7 @@ extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jn
 
 extern "C" JNIEXPORT jfloat JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getVURight(JNIEnv *env, jclass clazz, jint nums) {
     if(mod == NULL) return 0.0f;
+    if(!isLoaded) return 0.0f;
     pthread_mutex_lock(&g_lock);
     float r = openmpt_module_get_current_channel_vu_right(mod,nums);
     pthread_mutex_unlock(&g_lock);
@@ -345,6 +352,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getOrder(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_current_order(mod);
     pthread_mutex_unlock(&g_lock);
@@ -355,6 +363,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getPattern(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_current_pattern(mod);
     pthread_mutex_unlock(&g_lock);
@@ -364,6 +373,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getRow(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_current_row(mod);
     pthread_mutex_unlock(&g_lock);
@@ -373,6 +383,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getSpeed(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_current_speed(mod);
     pthread_mutex_unlock(&g_lock);
@@ -382,6 +393,7 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getTempo(JNIEnv *env, jclass clazz) {
     if(mod == NULL) return 0;
+    if(!isLoaded) return 0;
     pthread_mutex_lock(&g_lock);
     int r = openmpt_module_get_current_tempo(mod);
     pthread_mutex_unlock(&g_lock);
@@ -390,12 +402,14 @@ Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getTempo(JNIEnv *
 
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_setRenderParam(JNIEnv *env, jclass clazz, jint param, jint value) {
     if(mod == NULL) return;
+    if(!isLoaded) return;
     pthread_mutex_lock(&g_lock);
     openmpt_module_set_render_param(mod,param,value);
     pthread_mutex_unlock(&g_lock);
 }
 extern "C" JNIEXPORT void JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_ctlSetRepeat(JNIEnv *env, jclass clazz, jint repeat_count) {
     if(mod == NULL) return;
+    if(!isLoaded) return;
     pthread_mutex_lock(&g_lock);
     openmpt_module_set_repeat_count(mod,repeat_count);
     pthread_mutex_unlock(&g_lock);
@@ -405,7 +419,7 @@ extern "C" JNIEXPORT jstring JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
     const char *key_str = env->GetStringUTFChars(key, nullptr);
     jstring ret = env->NewStringUTF("");
     if(mod == NULL) return ret;
-
+    if(!isLoaded) return ret;
     pthread_mutex_lock(&g_lock);
     const char* meta = openmpt_module_get_metadata(mod,key_str);
     pthread_mutex_unlock(&g_lock);
