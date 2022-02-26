@@ -102,10 +102,10 @@ void startOpenSLES(int nsr, int fpb) {
     assert(pthread_mutex_init(&g_lock, NULL) == 0);
 
 
-    buffer_size = fpb * 4; // Stereo
+    buffer_size = fpb; // Stereo
     sample_rate = nsr;
 
-    LOG_D("OpenSL start with sample rate %d, buffersz %d",sample_rate,buffer_size);
+    LOG_D("C-Side: OpenSL start with sample rate %d, buffersz %d",sample_rate,buffer_size);
 
     // allocate buffer
     buffer[0] = static_cast<float *>(malloc(buffer_size * sizeof(float) * 2)); // buffer_size is in 16bit. malloc() returns in byte. and render in stereo.
@@ -425,4 +425,59 @@ extern "C" JNIEXPORT jstring JNICALL Java_team_digitalfairy_lencel_libopenmpt_1j
     pthread_mutex_unlock(&g_lock);
     ret = env->NewStringUTF(meta);
     return ret;
+}
+extern "C" JNIEXPORT jstring JNICALL Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_rRowStrings(JNIEnv *env, jclass clazz) {
+    static char string_buffer[256]; // "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d"
+
+    pthread_mutex_lock(&g_lock);
+    int speed = openmpt_module_get_current_speed(mod);
+    int bpm = openmpt_module_get_current_tempo(mod);
+    int pos = openmpt_module_get_current_row(mod);
+    int ptn = openmpt_module_get_current_pattern(mod);
+    int ord = openmpt_module_get_current_order(mod);
+    pthread_mutex_unlock(&g_lock);
+
+    snprintf(string_buffer,128,"Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
+             speed,bpm,pos,ptn,ord);
+    return env->NewStringUTF(string_buffer);
+}
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_rVUStrings(JNIEnv *env, jclass clazz, jint num) {
+    static char string_buffer[256]; // "%02d: L:%f R:%f "
+
+
+    pthread_mutex_lock(&g_lock);
+    int pos = openmpt_module_get_current_row(mod);
+    int ptn = openmpt_module_get_current_pattern(mod);
+    int ord = openmpt_module_get_current_order(mod);
+
+    const char* fm = openmpt_module_format_pattern_row_channel(mod,ptn,pos,num,0,false);
+
+    float l = openmpt_module_get_current_channel_vu_left(mod,num);
+    float r = openmpt_module_get_current_channel_vu_right(mod,num);
+
+    pthread_mutex_unlock(&g_lock);
+
+    snprintf(string_buffer,128,"%02d: L:%f R:%f %s"
+             ,num,l,r
+             ,fm
+             );
+    return env->NewStringUTF(string_buffer);
+}
+extern "C"
+JNIEXPORT jdouble JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getCurrentTime(JNIEnv *env, jclass clazz) {
+    pthread_mutex_lock(&g_lock);
+    double elapsed = openmpt_module_get_position_seconds(mod);
+    pthread_mutex_unlock(&g_lock);
+    return elapsed;
+}
+extern "C"
+JNIEXPORT jdouble JNICALL
+Java_team_digitalfairy_lencel_libopenmpt_1jni_1test_LibOpenMPT_getModuleTime(JNIEnv *env, jclass clazz) {
+    pthread_mutex_lock(&g_lock);
+    double t = openmpt_module_get_duration_seconds(mod);
+    pthread_mutex_unlock(&g_lock);
+    return t;
 }

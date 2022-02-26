@@ -37,4 +37,10 @@ public class LibOpenMPT {
 
     public static native void setRenderParam(int param, int value);
     public static native void ctlSetRepeat(int repeat_count);
+
+    public static native String rRowStrings();
+    public static native String rVUStrings(int num);
+
+    public static native double getCurrentTime();
+    public static native double getModuleTime();
 }
