@@ -330,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
         ll.removeAllViews();
         int channels = getNumChannel();
         TextView[] tvs = new TextView[channels];
+
         for(int i=0; i<channels; i++) {
             tvs[i] = new TextView(this);
             tvs[i].setTypeface(Typeface.MONOSPACE);
@@ -340,12 +341,10 @@ public class MainActivity extends AppCompatActivity {
             String a = rRowStrings();
             String[] sv = new String[channels];
             for (int i = 0; i < channels; i++) {
-                //sv[i] = String.format("%02d: L:%f R:%f", i, getVULeft(i), getVURight(i));
                 sv[i] = rVUStrings(i);
             }
             status_d.setText(a);
             runOnUiThread(() -> {
-
                 for (int i = 0; i < channels; i++) {
                     tvs[i].setText(sv[i]);
                 }
