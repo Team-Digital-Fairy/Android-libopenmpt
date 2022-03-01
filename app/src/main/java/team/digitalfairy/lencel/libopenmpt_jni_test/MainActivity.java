@@ -60,7 +60,8 @@ public class MainActivity extends AppCompatActivity {
     private ScheduledFuture<?> sf = null;
     private static final String MAINACTIVITY_LOGTAG = "MainAct_Log";
     private static double probability = 0.0;
-
+    private static boolean isPaused = true;
+    private static int currentViewId = 0;
     // private static String FILE_NAME = "/sdcard/mod/Seomadan_Uplink_SampleChange1.xm";
 
     public static final int READ_PERMISSION_FOR_MUSIC = 2;
@@ -125,6 +126,34 @@ public class MainActivity extends AppCompatActivity {
 
         Button openfb = (Button) findViewById(R.id.button);
         openfb.setOnClickListener(this::OnOpenFileClick);
+
+        Button pauseResume = findViewById(R.id.pauseButton);
+        pauseResume.setOnClickListener((v)-> {
+            togglePause();
+            if(isPaused) {
+                isPaused = false;
+                pauseResume.setText(R.string.pause);
+            } else {
+                isPaused = true;
+                pauseResume.setText(R.string.resume);
+            }
+        });
+
+        Button changeViewButton = findViewById(R.id.changeViewButton);
+        changeViewButton.setOnClickListener(v -> {
+            currentViewId++;
+            currentViewId %= 2;
+            switch(currentViewId) {
+                default:
+                case 0:
+                    runView1();
+                    break;
+
+                case 1:
+                    runView2();
+                    break;
+            }
+        });
     }
 
 
@@ -197,6 +226,7 @@ public class MainActivity extends AppCompatActivity {
                     m_lastPath = lastPath;
                     if (sf != null) sf.cancel(true);
                     stopPlaying();
+                    isPaused = true;
 
                     getHowMuchProbability(fileName, 1.0);
 
@@ -211,62 +241,20 @@ public class MainActivity extends AppCompatActivity {
 
                     ctlSetRepeat(-1);
                     mod_title.setText(getMetadata("title"));
-                    ll.removeAllViews();
-                    int channels = getNumChannel();
-                    TextView[] tvs = new TextView[channels];
-                    ProgressBar[] pbsL = new ProgressBar[channels];
-                    ProgressBar[] pbsR = new ProgressBar[channels];
-                    for (int i = 0; i < channels; i++) {
-                        tvs[i] = new TextView(this);
-                        pbsL[i] = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-                        pbsR[i] = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-                        //tvs[i].setId(1000+i);
-                        //tvs[i].setText("");
-
-                        pbsL[i].setMax(1000);
-                        pbsR[i].setMax(1000);
-                        tvs[i].setTypeface(Typeface.MONOSPACE);
-                        ll.addView(tvs[i]);
-                        ll.addView(pbsL[i]);
-                        ll.addView(pbsR[i]);
-                    }
-
                     // TODO: This seems to cause crash over time. at random. Figure out why?
                     // TODO: String.format is slow. It may crash, again.
                     togglePause(); // let it run once.
+                    isPaused = false;
+                    switch(currentViewId) {
+                        default:
+                        case 0:
+                            runView1();
+                            break;
 
-                    sf = ex.scheduleAtFixedRate(() -> {
-                        runOnUiThread(() -> {
-
-
-                            String a = rRowStrings();
-                                    /*String.format(
-                                    "Spd:%02d BPM:%3d Pos:%02X Ptn:%02X Ord:%3d",
-                                    getSpeed(), getTempo(), getRow(), getPattern(), getOrder()
-                            );*/
-
-                            // prepare before update.
-                            String[] sv = new String[channels];
-                            for (int i = 0; i < channels; i++) {
-                                //sv[i] = String.format("%02d: L:%f R:%f", i, getVULeft(i), getVURight(i));
-                                sv[i] = rVUStrings(i);
-                            }
-
-
-                            status_d.setText(a);
-
-                            for (int i = 0; i < channels; i++) {
-                                tvs[i].setText(sv[i]);
-                                pbsL[i].setProgress((int) (getVULeft(i) * 1000));
-                                pbsR[i].setProgress((int) (getVURight(i) * 1000));
-                            }
-
-                            runningTime.setText((long)(getCurrentTime()*1000)+"/"+file_estimated_playtime);
-                            pb.setProgress((int)(getCurrentTime()*1000));
-                        });
-                    }, 0, 50, TimeUnit.MILLISECONDS);
-
-
+                        case 1:
+                            runView2();
+                            break;
+                    }
 
                 });
         fileDialog.show();
@@ -284,5 +272,88 @@ public class MainActivity extends AppCompatActivity {
     // @NeedsPermission({Manifest.permission.MANAGE_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE})
     void getHowMuchProbability(String filename, double effort) {
         probability = OpenProbability(filename, effort);
+    }
+
+    void runView1() {
+        // First (with Progress bar)
+        if (sf != null) sf.cancel(true);
+        long file_estimated_playtime = (long) (getModuleTime() * 1000);
+
+        ll.removeAllViews();
+        int channels = getNumChannel();
+        TextView[] tvs = new TextView[channels];
+        ProgressBar[] pbsL = new ProgressBar[channels];
+        ProgressBar[] pbsR = new ProgressBar[channels];
+        for (int i = 0; i < channels; i++) {
+            tvs[i] = new TextView(this);
+            pbsL[i] = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+            pbsR[i] = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+            //tvs[i].setId(1000+i);
+            //tvs[i].setText("");
+
+            pbsL[i].setMax(1000);
+            pbsR[i].setMax(1000);
+            tvs[i].setTypeface(Typeface.MONOSPACE);
+            ll.addView(tvs[i]);
+            ll.addView(pbsL[i]);
+            ll.addView(pbsR[i]);
+        }
+
+
+
+        sf = ex.scheduleAtFixedRate(() -> {
+            String a = rRowStrings();
+            String[] sv = new String[channels];
+            for (int i = 0; i < channels; i++) {
+                //sv[i] = String.format("%02d: L:%f R:%f", i, getVULeft(i), getVURight(i));
+                sv[i] = rVUStrings(i);
+            }
+            status_d.setText(a);
+            runOnUiThread(() -> {
+
+                for (int i = 0; i < channels; i++) {
+                    tvs[i].setText(sv[i]);
+                    pbsL[i].setProgress((int) (getVULeft(i) * 1000));
+                    pbsR[i].setProgress((int) (getVURight(i) * 1000));
+                }
+
+                runningTime.setText(getString(R.string.play_time,(long)(getCurrentTime()*1000),file_estimated_playtime)); //(long)(getCurrentTime()*1000)+"/"+file_estimated_playtime);
+                pb.setProgress((int)(getCurrentTime()*1000));
+            });
+        }, 0, 43, TimeUnit.MILLISECONDS);
+    }
+
+    void runView2() {
+        if (sf != null) sf.cancel(true);
+        long file_estimated_playtime = (long) (getModuleTime() * 1000);
+
+        ll.removeAllViews();
+        int channels = getNumChannel();
+        TextView[] tvs = new TextView[channels];
+        for(int i=0; i<channels; i++) {
+            tvs[i] = new TextView(this);
+            tvs[i].setTypeface(Typeface.MONOSPACE);
+            ll.addView(tvs[i]);
+        }
+
+        sf = ex.scheduleAtFixedRate(() -> {
+            String a = rRowStrings();
+            String[] sv = new String[channels];
+            for (int i = 0; i < channels; i++) {
+                //sv[i] = String.format("%02d: L:%f R:%f", i, getVULeft(i), getVURight(i));
+                sv[i] = rVUStrings(i);
+            }
+            status_d.setText(a);
+            runOnUiThread(() -> {
+
+                for (int i = 0; i < channels; i++) {
+                    tvs[i].setText(sv[i]);
+                }
+
+                runningTime.setText(getString(R.string.play_time,(long)(getCurrentTime()*1000),file_estimated_playtime)); //(long)(getCurrentTime()*1000)+"/"+file_estimated_playtime);
+                pb.setProgress((int)(getCurrentTime()*1000));
+            });
+        }, 0, 43, TimeUnit.MILLISECONDS);
+
     }
 }

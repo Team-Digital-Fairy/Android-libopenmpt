@@ -1,0 +1,36 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - main # masterブランチへのマージを契機にビルドする
+
+jobs:
+  build:
+
+    name: Build on merge # GitHub上で識別しやすいのでジョブの名前をつけておく
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+      - name: Run Android Lint
+        run: ./gradlew lintDebug
+      - name: Run Unit Test
+        run: ./gradlew testDebug
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
+      - name: Build Release 
+        run: ./gradlew assembleRelease
+      - name: Upload apk file
+        uses: actions/upload-artifact@v2
+        with:
+          name: app
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk

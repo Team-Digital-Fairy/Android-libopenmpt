@@ -8,4 +8,9 @@
     <string name="interp_8">Windowed Sinc</string>
     <string name="open_file">Open file...</string>
     <string name="stop">Stop</string>
+
+    <string name="play_time">%1$d/%2$d</string>
+    <string name="pause">Pause...</string>
+    <string name="resume">Resume...</string>
+    <string name="change_view">Change Viewer</string>
 </resources>

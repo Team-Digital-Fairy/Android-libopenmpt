@@ -76,7 +76,9 @@ extern "C" {
     }
 
     static void togglePause() {
-        isPaused = false;
+        isPaused = !isPaused;
+        (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer[currentbuffer],sizeof(buffer[currentbuffer]));
+        currentbuffer ^= 1;
     }
 
     static void stopPlaying() {

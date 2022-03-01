@@ -262,16 +262,13 @@ public class OpenFileDialog extends AlertDialog.Builder
         if(list == null)
             list = new File[]{};
         List<File> fileList = Arrays.asList(list);
-        Collections.sort(fileList, new Comparator<File>() {
-            @Override
-            public int compare(File file, File file2) {
+        fileList.sort((file, file2) -> {
             if (file.isDirectory() && file2.isFile())
                 return -1;
             else if (file.isFile() && file2.isDirectory())
                 return 1;
             else
                 return file.getPath().compareToIgnoreCase(file2.getPath());
-            }
         });
         return fileList;
     }
@@ -294,10 +291,7 @@ public class OpenFileDialog extends AlertDialog.Builder
 
     private ListView createListView(Context context) {
         ListView listView = new ListView(context);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int index, long l) {
+        listView.setOnItemClickListener((adapterView, view, index, l) -> {
             final ArrayAdapter<File> adapter = (FileAdapter) adapterView.getAdapter();
             File file = adapter.getItem(index);
             assert file != null;
@@ -310,7 +304,6 @@ public class OpenFileDialog extends AlertDialog.Builder
                 else
                     selectedIndex = -1;
                 adapter.notifyDataSetChanged();
-            }
             }
         });
         return listView;
